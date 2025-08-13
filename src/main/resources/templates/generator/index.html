@@ -3,179 +3,680 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuickCode - 代码生成器</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/themes/prism.min.css" rel="stylesheet">
+    <title>QuickCode - 智能代码生成器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .table-info {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary-color: #f8fafc;
+            --accent-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --border-radius: 12px;
         }
-        .code-preview {
-            max-height: 500px;
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            margin: 20px;
+            min-height: calc(100vh - 40px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 24px 32px;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header p {
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .content-wrapper {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+
+        .sidebar {
+            width: 320px;
+            background: var(--secondary-color);
+            border-right: 1px solid var(--border-color);
             overflow-y: auto;
-            position: relative;
         }
-        .btn-group-custom {
-            margin-bottom: 10px;
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: white;
         }
-        .copy-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
+
+        .sidebar-header h5 {
+            margin: 0;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+
+        .table-list {
+            padding: 16px;
+        }
+
+        .table-item {
+            display: block;
+            padding: 16px 20px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .table-item:hover {
+            background: #f1f5f9;
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+            color: var(--text-primary);
+        }
+
+        .table-item.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .table-item .table-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .table-item .table-comment {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .info-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-item {
+            background: var(--secondary-color);
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .info-item .label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .info-item .value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .btn-custom {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            border: none;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary-custom {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary-custom:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-outline-custom {
+            background: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .btn-outline-custom:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .table {
+            margin: 0;
+        }
+
+        .table thead th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 16px;
+        }
+
+        .table tbody td {
+            padding: 12px 16px;
+            border-color: var(--border-color);
+            vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+            background: var(--secondary-color);
+        }
+
+        .badge-custom {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .badge-secondary {
+            background: var(--text-secondary);
+            color: white;
+        }
+
+        .code-preview {
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        .code-header {
+            background: #2d3748;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
         .code-container {
             position: relative;
+            max-height: 600px;
+            overflow-y: auto;
         }
+
+        .copy-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 1000;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+
         pre {
             margin: 0;
-            padding-top: 40px;
+            padding: 24px;
+            background: #1a202c !important;
+        }
+
+        .welcome-section {
+            text-align: center;
+            padding: 80px 40px;
+            color: var(--text-secondary);
+        }
+
+        .welcome-section h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .welcome-section p {
+            font-size: 18px;
+            margin-bottom: 32px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-top: 48px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 20px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast-custom {
+            background: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            min-width: 300px;
+        }
+
+        .toast-success {
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .toast-error {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 10px;
+                min-height: calc(100vh - 20px);
+            }
+
+            .content-wrapper {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn-custom {
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>数据库表列表</h5>
-                    </div>
-                    <div class="card-body">
-                        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
-                        <div th:if="${tables}" class="list-group">
-                            <a href="#" class="list-group-item list-group-item-action table-item" 
-                               th:each="table : ${tables}" 
-                               th:data-table="${table.tableName}"
-                               th:text="${table.tableName} + ' (' + ${table.tableComment} + ')'">
-                            </a>
-                        </div>
+    <div class="main-container">
+        <div class="header">
+            <h1>
+                <i class="bi bi-code-slash"></i>
+                QuickCode 智能代码生成器
+            </h1>
+            <p>基于数据库表结构，快速生成高质量的 CRUD 代码</p>
+        </div>
+        
+        <div class="content-wrapper">
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h5>
+                        <i class="bi bi-table"></i>
+                        数据库表列表
+                    </h5>
+                </div>
+                <div class="table-list">
+                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+                    <div th:if="${tables}">
+                        <a href="#" class="table-item" 
+                           th:each="table : ${tables}" 
+                           th:data-table="${table.tableName}">
+                            <div class="table-name" th:text="${table.tableName}"></div>
+                            <div class="table-comment" th:text="${table.tableComment} ?: '无注释'"></div>
+                        </a>
                     </div>
                 </div>
             </div>
             
-            <div class="col-md-9">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>表信息与代码生成</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="table-info" class="table-info" style="display: none;">
-                            <h6>表信息</h6>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>表名:</strong> <span id="table-name"></span></p>
-                                    <p><strong>注释:</strong> <span id="table-comment"></span></p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>主键:</strong> <span id="primary-key"></span></p>
-                                    <p><strong>字段数:</strong> <span id="column-count"></span></p>
-                                </div>
+            <div class="main-content">
+                <div id="table-info" style="display: none;">
+                    <div class="info-card">
+                        <h5 class="mb-3">
+                            <i class="bi bi-info-circle"></i>
+                            表信息概览
+                        </h5>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="label">表名</div>
+                                <div class="value" id="table-name"></div>
                             </div>
-                            
-                            <div class="btn-group-custom">
-                                <button type="button" class="btn btn-primary" onclick="generateCode()">生成所有代码</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="previewCode('entity')">预览Entity</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="previewCode('dao')">预览DAO</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="previewCode('service')">预览Service</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="previewCode('controller')">预览Controller</button>
+                            <div class="info-item">
+                                <div class="label">注释</div>
+                                <div class="value" id="table-comment"></div>
                             </div>
-                            
-                            <div class="table-responsive">
-                                <table class="table table-striped table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>字段名</th>
-                                            <th>类型</th>
-                                            <th>Java类型</th>
-                                            <th>注释</th>
-                                            <th>主键</th>
-                                            <th>自增</th>
-                                            <th>可空</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="columns-table">
-                                    </tbody>
-                                </table>
+                            <div class="info-item">
+                                <div class="label">主键</div>
+                                <div class="value" id="primary-key"></div>
+                            </div>
+                            <div class="info-item">
+                                <div class="label">字段数</div>
+                                <div class="value" id="column-count"></div>
                             </div>
                         </div>
                         
-                        <div id="code-preview" class="code-preview" style="display: none;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6>代码预览</h6>
-                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="goBack()">返回表信息</button>
-                            </div>
-                            <div class="code-container">
-                                <button type="button" class="btn btn-sm btn-success copy-btn" onclick="copyCode()">
-                                    <i class="bi bi-clipboard"></i> 复制代码
-                                </button>
-                                <pre><code id="preview-code" class="language-java"></code></pre>
-                            </div>
-                        </div>
-                        
-                        <div id="welcome-message" class="text-center text-muted">
-                            <h4>欢迎使用 QuickCode 代码生成器</h4>
-                            <p>请从左侧选择一个数据库表开始生成代码</p>
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-custom btn-primary-custom" onclick="generateCode()">
+                                <i class="bi bi-download"></i>
+                                生成所有代码
+                            </button>
+                            <button type="button" class="btn btn-custom btn-outline-custom" onclick="previewCode('entity')">
+                                <i class="bi bi-file-earmark-code"></i>
+                                预览 Entity
+                            </button>
+                            <button type="button" class="btn btn-custom btn-outline-custom" onclick="previewCode('dao')">
+                                <i class="bi bi-database"></i>
+                                预览 DAO
+                            </button>
+                            <button type="button" class="btn btn-custom btn-outline-custom" onclick="previewCode('service')">
+                                <i class="bi bi-gear"></i>
+                                预览 Service
+                            </button>
+                            <button type="button" class="btn btn-custom btn-outline-custom" onclick="previewCode('controller')">
+                                <i class="bi bi-controller"></i>
+                                预览 Controller
+                            </button>
                         </div>
                     </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>字段名</th>
+                                    <th>数据类型</th>
+                                    <th>Java类型</th>
+                                    <th>注释</th>
+                                    <th>主键</th>
+                                    <th>自增</th>
+                                    <th>可空</th>
+                                </tr>
+                            </thead>
+                            <tbody id="columns-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div id="code-preview" class="code-preview" style="display: none;">
+                    <div class="code-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-code-square"></i>
+                            代码预览
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="goBack()">
+                            <i class="bi bi-arrow-left"></i>
+                            返回
+                        </button>
+                    </div>
+                    <div class="code-container">
+                        <button type="button" class="copy-btn" onclick="copyCode()">
+                            <i class="bi bi-clipboard"></i>
+                            复制
+                        </button>
+                        <pre><code id="preview-code" class="language-java"></code></pre>
+                    </div>
+                </div>
+                
+                <div id="welcome-message" class="welcome-section">
+                    <h2>欢迎使用 QuickCode</h2>
+                    <p>选择左侧的数据库表，开始生成高质量的代码</p>
+                    
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-lightning"></i>
+                            </div>
+                            <h6>快速生成</h6>
+                            <p>基于数据库表结构，一键生成完整的 CRUD 代码</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-code-slash"></i>
+                            </div>
+                            <h6>代码质量</h6>
+                            <p>生成符合最佳实践的高质量代码，支持 Lombok 注解</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="bi bi-eye"></i>
+                            </div>
+                            <h6>实时预览</h6>
+                            <p>支持实时预览生成的代码，方便复制和使用</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span class="ms-3">正在处理...</span>
                 </div>
             </div>
         </div>
     </div>
     
     <!-- Toast 消息提示 -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="toast" class="toast" role="alert">
+    <div class="toast-container">
+        <div id="toast" class="toast toast-custom" role="alert">
             <div class="toast-header">
-                <strong class="me-auto">提示</strong>
+                <i id="toast-icon" class="bi me-2"></i>
+                <strong class="me-auto" id="toast-title">提示</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
             </div>
-            <div class="toast-body" id="toast-body">
-            </div>
+            <div class="toast-body" id="toast-body"></div>
         </div>
     </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/components/prism-core.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     
     <script>
         let currentTable = null;
         
-        // 表格点击事件
-        document.querySelectorAll('.table-item').forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                // 移除其他选中状态
-                document.querySelectorAll('.table-item').forEach(i => i.classList.remove('active'));
-                // 添加选中状态
-                this.classList.add('active');
-                
-                const tableName = this.dataset.table;
-                loadTableInfo(tableName);
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 表格点击事件
+            document.querySelectorAll('.table-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // 移除其他选中状态
+                    document.querySelectorAll('.table-item').forEach(i => i.classList.remove('active'));
+                    // 添加选中状态
+                    this.classList.add('active');
+                    
+                    const tableName = this.dataset.table;
+                    loadTableInfo(tableName);
+                });
             });
         });
+        
+        // 显示加载状态
+        function showLoading() {
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('table-info').style.display = 'none';
+            document.getElementById('code-preview').style.display = 'none';
+            document.getElementById('welcome-message').style.display = 'none';
+        }
+        
+        // 隐藏加载状态
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
         
         // 加载表信息
         function loadTableInfo(tableName) {
             currentTable = tableName;
+            showLoading();
             
             fetch(`/generator/table/${tableName}`)
                 .then(response => response.json())
                 .then(data => {
+                    hideLoading();
                     if (data.success) {
                         displayTableInfo(data.data);
                     } else {
                         showToast(data.message, 'error');
+                        showWelcome();
                     }
                 })
                 .catch(error => {
+                    hideLoading();
                     showToast('加载表信息失败: ' + error.message, 'error');
+                    showWelcome();
                 });
+        }
+        
+        // 显示欢迎页面
+        function showWelcome() {
+            document.getElementById('welcome-message').style.display = 'block';
+            document.getElementById('table-info').style.display = 'none';
+            document.getElementById('code-preview').style.display = 'none';
         }
         
         // 显示表信息
@@ -196,13 +697,13 @@
             tableInfo.columns.forEach(column => {
                 const row = tbody.insertRow();
                 row.innerHTML = `
-                    <td>${column.columnName}</td>
-                    <td>${column.columnType}</td>
-                    <td>${column.javaType}</td>
+                    <td><strong>${column.columnName}</strong></td>
+                    <td><code>${column.columnType}</code></td>
+                    <td><span class="badge bg-primary">${column.javaType}</span></td>
                     <td>${column.columnComment || '无'}</td>
-                    <td>${column.primaryKey ? '是' : '否'}</td>
-                    <td>${column.autoIncrement ? '是' : '否'}</td>
-                    <td>${column.nullable ? '是' : '否'}</td>
+                    <td><span class="badge ${column.primaryKey ? 'badge-success' : 'badge-secondary'} badge-custom">${column.primaryKey ? '是' : '否'}</span></td>
+                    <td><span class="badge ${column.autoIncrement ? 'badge-success' : 'badge-secondary'} badge-custom">${column.autoIncrement ? '是' : '否'}</span></td>
+                    <td><span class="badge ${column.nullable ? 'bg-warning' : 'badge-success'} badge-custom">${column.nullable ? '是' : '否'}</span></td>
                 `;
             });
         }
@@ -214,6 +715,8 @@
                 return;
             }
             
+            showLoading();
+            
             const formData = new FormData();
             formData.append('tableName', currentTable);
             
@@ -223,6 +726,7 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
                     showToast(data.message, 'success');
                 } else {
@@ -230,6 +734,7 @@
                 }
             })
             .catch(error => {
+                hideLoading();
                 showToast('生成代码失败: ' + error.message, 'error');
             });
         }
@@ -241,6 +746,8 @@
                 return;
             }
             
+            showLoading();
+            
             const formData = new FormData();
             formData.append('tableName', currentTable);
             formData.append('type', type);
@@ -251,6 +758,7 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoading();
                 if (data.success) {
                     document.getElementById('table-info').style.display = 'none';
                     document.getElementById('code-preview').style.display = 'block';
@@ -261,6 +769,7 @@
                 }
             })
             .catch(error => {
+                hideLoading();
                 showToast('预览代码失败: ' + error.message, 'error');
             });
         }
@@ -321,18 +830,31 @@
         function showToast(message, type) {
             const toastBody = document.getElementById('toast-body');
             const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastTitle = document.getElementById('toast-title');
             
             toastBody.textContent = message;
             
-            // 设置样式
-            toast.className = 'toast';
+            // 重置样式
+            toast.className = 'toast toast-custom';
+            
             if (type === 'success') {
-                toast.classList.add('bg-success', 'text-white');
+                toast.classList.add('toast-success');
+                toastIcon.className = 'bi bi-check-circle-fill text-success me-2';
+                toastTitle.textContent = '成功';
             } else if (type === 'error') {
-                toast.classList.add('bg-danger', 'text-white');
+                toast.classList.add('toast-error');
+                toastIcon.className = 'bi bi-exclamation-triangle-fill text-danger me-2';
+                toastTitle.textContent = '错误';
+            } else {
+                toastIcon.className = 'bi bi-info-circle-fill text-primary me-2';
+                toastTitle.textContent = '提示';
             }
             
-            const bsToast = new bootstrap.Toast(toast);
+            const bsToast = new bootstrap.Toast(toast, {
+                autohide: true,
+                delay: 4000
+            });
             bsToast.show();
         }
     </script>
