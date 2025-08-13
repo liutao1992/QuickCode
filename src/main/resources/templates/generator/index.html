@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickCode - 代码生成器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .table-info {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .code-preview {
+            max-height: 500px;
+            overflow-y: auto;
+            position: relative;
+        }
+        .btn-group-custom {
+            margin-bottom: 10px;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        .code-container {
+            position: relative;
+        }
+        pre {
+            margin: 0;
+            padding-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>数据库表列表</h5>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+                        <div th:if="${tables}" class="list-group">
+                            <a href="#" class="list-group-item list-group-item-action table-item" 
+                               th:each="table : ${tables}" 
+                               th:data-table="${table.tableName}"
+                               th:text="${table.tableName} + ' (' + ${table.tableComment} + ')'">
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>表信息与代码生成</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="table-info" class="table-info" style="display: none;">
+                            <h6>表信息</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>表名:</strong> <span id="table-name"></span></p>
+                                    <p><strong>注释:</strong> <span id="table-comment"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>主键:</strong> <span id="primary-key"></span></p>
+                                    <p><strong>字段数:</strong> <span id="column-count"></span></p>
+                                </div>
+                            </div>
+                            
+                            <div class="btn-group-custom">
+                                <button type="button" class="btn btn-primary" onclick="generateCode()">生成所有代码</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="previewCode('entity')">预览Entity</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="previewCode('dao')">预览DAO</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="previewCode('service')">预览Service</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="previewCode('controller')">预览Controller</button>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-striped table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>字段名</th>
+                                            <th>类型</th>
+                                            <th>Java类型</th>
+                                            <th>注释</th>
+                                            <th>主键</th>
+                                            <th>自增</th>
+                                            <th>可空</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="columns-table">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div id="code-preview" class="code-preview" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6>代码预览</h6>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="goBack()">返回表信息</button>
+                            </div>
+                            <div class="code-container">
+                                <button type="button" class="btn btn-sm btn-success copy-btn" onclick="copyCode()">
+                                    <i class="bi bi-clipboard"></i> 复制代码
+                                </button>
+                                <pre><code id="preview-code" class="language-java"></code></pre>
+                            </div>
+                        </div>
+                        
+                        <div id="welcome-message" class="text-center text-muted">
+                            <h4>欢迎使用 QuickCode 代码生成器</h4>
+                            <p>请从左侧选择一个数据库表开始生成代码</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 消息提示 -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">提示</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toast-body">
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        let currentTable = null;
+        
+        // 表格点击事件
+        document.querySelectorAll('.table-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // 移除其他选中状态
+                document.querySelectorAll('.table-item').forEach(i => i.classList.remove('active'));
+                // 添加选中状态
+                this.classList.add('active');
+                
+                const tableName = this.dataset.table;
+                loadTableInfo(tableName);
+            });
+        });
+        
+        // 加载表信息
+        function loadTableInfo(tableName) {
+            currentTable = tableName;
+            
+            fetch(`/generator/table/${tableName}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayTableInfo(data.data);
+                    } else {
+                        showToast(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('加载表信息失败: ' + error.message, 'error');
+                });
+        }
+        
+        // 显示表信息
+        function displayTableInfo(tableInfo) {
+            document.getElementById('welcome-message').style.display = 'none';
+            document.getElementById('code-preview').style.display = 'none';
+            document.getElementById('table-info').style.display = 'block';
+            
+            document.getElementById('table-name').textContent = tableInfo.tableName;
+            document.getElementById('table-comment').textContent = tableInfo.tableComment || '无';
+            document.getElementById('primary-key').textContent = tableInfo.primaryKey || '无';
+            document.getElementById('column-count').textContent = tableInfo.columns.length;
+            
+            // 显示字段信息
+            const tbody = document.getElementById('columns-table');
+            tbody.innerHTML = '';
+            
+            tableInfo.columns.forEach(column => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${column.columnName}</td>
+                    <td>${column.columnType}</td>
+                    <td>${column.javaType}</td>
+                    <td>${column.columnComment || '无'}</td>
+                    <td>${column.primaryKey ? '是' : '否'}</td>
+                    <td>${column.autoIncrement ? '是' : '否'}</td>
+                    <td>${column.nullable ? '是' : '否'}</td>
+                `;
+            });
+        }
+        
+        // 生成代码
+        function generateCode() {
+            if (!currentTable) {
+                showToast('请先选择一个表', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('tableName', currentTable);
+            
+            fetch('/generator/generate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('生成代码失败: ' + error.message, 'error');
+            });
+        }
+        
+        // 预览代码
+        function previewCode(type) {
+            if (!currentTable) {
+                showToast('请先选择一个表', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('tableName', currentTable);
+            formData.append('type', type);
+            
+            fetch('/generator/preview', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('table-info').style.display = 'none';
+                    document.getElementById('code-preview').style.display = 'block';
+                    document.getElementById('preview-code').textContent = data.code;
+                    Prism.highlightAll();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('预览代码失败: ' + error.message, 'error');
+            });
+        }
+        
+        // 复制代码功能
+        function copyCode() {
+            const codeElement = document.getElementById('preview-code');
+            const code = codeElement.textContent;
+            
+            // 使用现代的 Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(code).then(() => {
+                    showToast('代码已复制到剪贴板', 'success');
+                }).catch(err => {
+                    fallbackCopyTextToClipboard(code);
+                });
+            } else {
+                // 降级方案
+                fallbackCopyTextToClipboard(code);
+            }
+        }
+        
+        // 降级复制方案
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            
+            // 避免滚动到底部
+            textArea.style.top = '0';
+            textArea.style.left = '0';
+            textArea.style.position = 'fixed';
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('代码已复制到剪贴板', 'success');
+                } else {
+                    showToast('复制失败，请手动复制', 'error');
+                }
+            } catch (err) {
+                showToast('复制失败，请手动复制', 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // 返回表信息
+        function goBack() {
+            document.getElementById('code-preview').style.display = 'none';
+            document.getElementById('table-info').style.display = 'block';
+        }
+        
+        // 显示提示消息
+        function showToast(message, type) {
+            const toastBody = document.getElementById('toast-body');
+            const toast = document.getElementById('toast');
+            
+            toastBody.textContent = message;
+            
+            // 设置样式
+            toast.className = 'toast';
+            if (type === 'success') {
+                toast.classList.add('bg-success', 'text-white');
+            } else if (type === 'error') {
+                toast.classList.add('bg-danger', 'text-white');
+            }
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+    </script>
+</body>
+</html>
