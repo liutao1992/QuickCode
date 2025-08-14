@@ -1,0 +1,40 @@
+/* Inter font fallback - 使用系统字体作为备选 */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: local('Inter Light'), local('Inter-Light'), local('system-ui'), local('-apple-system'), local('BlinkMacSystemFont');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Inter Regular'), local('Inter-Regular'), local('system-ui'), local('-apple-system'), local('BlinkMacSystemFont');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Inter Medium'), local('Inter-Medium'), local('system-ui'), local('-apple-system'), local('BlinkMacSystemFont');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Inter SemiBold'), local('Inter-SemiBold'), local('system-ui'), local('-apple-system'), local('BlinkMacSystemFont');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Inter Bold'), local('Inter-Bold'), local('system-ui'), local('-apple-system'), local('BlinkMacSystemFont');
+}
