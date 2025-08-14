@@ -2,8 +2,6 @@ package com.example.generated.controller;
 
 import com.example.generated.entity.ZhagXcSxtxx;
 import com.example.generated.service.ZhagXcSxtxxService;
-import com.github.chengyuxing.common.DataRow;
-import com.github.chengyuxing.sql.PagedResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +14,7 @@ import java.util.Map;
  * 摄像头基本信息 控制器
  * 
  * @author QuickCode Generator
- * @date 2025-08-13 15:15:18
+ * @date 2025-08-14 22:09:32
  */
 @RestController
 @RequestMapping("/zhagXcSxtxx")
@@ -110,12 +108,20 @@ public class ZhagXcSxtxxController {
      * 分页查询
      */
     @GetMapping("/page")
-    public ResponseEntity<?> findByPage(
+    public ResponseEntity<Map<String, Object>> findByPage(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         
-        PagedResource<DataRow> list = zhagXcSxtxxService.findByPage(page, size);
-
-        return ResponseEntity.ok(list);
+        List<ZhagXcSxtxx> list = zhagXcSxtxxService.findByPage(page, size);
+        long total = zhagXcSxtxxService.count();
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", list);
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
+        result.put("totalPages", (total + size - 1) / size);
+        
+        return ResponseEntity.ok(result);
     }
 }

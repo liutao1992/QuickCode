@@ -58,6 +58,25 @@ public class GeneratorController {
     }
     
     /**
+     * 获取表信息（POST，兼容前端调用）
+     */
+    @PostMapping("/table")
+    @ResponseBody
+    public Map<String, Object> getTableInfoPost(@RequestParam String tableName) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            TableInfo tableInfo = databaseAnalyzer.getTableInfo(tableName);
+            result.put("success", true);
+            result.put("table", tableInfo);
+            result.put("columns", tableInfo.getColumns());
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "获取表信息失败: " + e.getMessage());
+        }
+        return result;
+    }
+    
+    /**
      * 生成代码
      */
     @PostMapping("/generate")

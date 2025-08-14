@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  * 摄像头基本信息 实体类
  * 
  * @author QuickCode Generator
- * @date 2025-08-13 15:16:40
+ * @date 2025-08-14 22:19:39
  */
 @Data
 @NoArgsConstructor
