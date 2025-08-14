@@ -1,16 +1,14 @@
 package ${daoPackage};
 
 import ${entityPackage}.${table.className};
-import com.github.chengyuxing.sql.BakiDao;
-import com.github.chengyuxing.sql.page.PagedResource;
 import com.github.chengyuxing.common.DataRow;
+import com.github.chengyuxing.sql.Args;
+import com.github.chengyuxing.sql.BakiDao;
+import com.github.chengyuxing.sql.PagedResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * ${table.tableComment!table.tableName} DAO层 - 使用Baki方式
@@ -28,17 +26,15 @@ public class ${table.className}Dao {
      * 查询所有记录
      */
     public List<${table.className}> findAll() {
-        return bakiDao.query("&${table.instanceName}.findAll")
-                .listEntity(${table.className}.class);
+        return bakiDao.query("&${table.instanceName}.findAll").entities(${table.className}.class);
     }
     
     /**
      * 根据ID查询记录
      */
-    public Optional<${table.className}> findById(<#list table.columns as column><#if column.primaryKey>${column.javaType} ${column.propertyName}</#if></#list>) {
+    public ${table.className} findById(<#list table.columns as column><#if column.primaryKey>${column.javaType} ${column.propertyName}</#if></#list>) {
         return bakiDao.query("&${table.instanceName}.findById")
-                .arg("${table.primaryKeyProperty}", <#list table.columns as column><#if column.primaryKey>${column.propertyName}</#if></#list>)
-                .optionalEntity(${table.className}.class);
+                .arg("${table.primaryKeyProperty}", <#list table.columns as column><#if column.primaryKey>${column.propertyName}</#if></#list>).findFirstEntity(${table.className}.class);
     }
     
     /**
@@ -47,14 +43,10 @@ public class ${table.className}Dao {
     public int insert(${table.className} ${table.instanceName}) {
         Map<String, Object> params = new HashMap<>();
 <#list table.columns as column>
-<#if !column.autoIncrement>
         params.put("${column.propertyName}", ${table.instanceName}.${column.getterName}());
-</#if>
 </#list>
         
-        return bakiDao.query("&${table.instanceName}.insert")
-                .args(params)
-                .execute();
+        return bakiDao.of("&${table.instanceName}.insert").execute(params).getInt(0);
     }
     
     /**
@@ -66,27 +58,22 @@ public class ${table.className}Dao {
         params.put("${column.propertyName}", ${table.instanceName}.${column.getterName}());
 </#list>
         
-        return bakiDao.query("&${table.instanceName}.update")
-                .args(params)
-                .execute();
+        return bakiDao.of("&${table.instanceName}.update").execute(params).getInt(0);
     }
     
     /**
      * 删除记录
      */
     public int deleteById(<#list table.columns as column><#if column.primaryKey>${column.javaType} ${column.propertyName}</#if></#list>) {
-        return bakiDao.query("&${table.instanceName}.deleteById")
-                .arg("${table.primaryKeyProperty}", <#list table.columns as column><#if column.primaryKey>${column.propertyName}</#if></#list>)
-                .execute();
+        return bakiDao.of("&${table.instanceName}.deleteById").execute(Args.of(<#list table.columns as column><#if column.primaryKey>${column.propertyName}, ${column.propertyName}</#if></#list>)).getInt(0);
     }
     
     /**
      * 分页查询
      */
-    public PagedResource<${table.className}> findByPage(int page, int size) {
+    public PagedResource<DataRow> findByPage(int page, int size) {
         return bakiDao.query("&${table.instanceName}.findByPage")
-                .pageable(page, size)
-                .collect(${table.className}.class);
+                .pageable(page, size).collect();
     }
     
     /**
@@ -113,27 +100,13 @@ public class ${table.className}Dao {
         
         return bakiDao.query(sql.toString())
                 .args(params)
-                .listEntity(${table.className}.class);
+                .entities(${table.className}.class);
     }
     
     /**
      * 批量插入
      */
-    public int[] batchInsert(List<${table.className}> ${table.instanceName}List) {
-        List<Map<String, Object>> paramsList = new ArrayList<>();
-        
-        for (${table.className} ${table.instanceName} : ${table.instanceName}List) {
-            Map<String, Object> params = new HashMap<>();
-<#list table.columns as column>
-<#if !column.autoIncrement>
-            params.put("${column.propertyName}", ${table.instanceName}.${column.getterName}());
-</#if>
-</#list>
-            paramsList.add(params);
-        }
-        
-        return bakiDao.query("&${table.instanceName}.insert")
-                .batch(paramsList)
-                .executeBatch();
+    public int batchInsert(List<${table.className}> ${table.instanceName}List) {
+        return 0;
     }
 }

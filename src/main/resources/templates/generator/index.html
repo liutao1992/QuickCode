@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuickCode - 智能代码生成器</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="/fonts/inter.css" rel="stylesheet">
     <style>
         :root {
             --primary-color: #6366f1;
@@ -611,9 +611,9 @@
         </div>
     </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/prism-core.min.js"></script>
+    <script src="/js/prism-autoloader.min.js"></script>
     
     <script>
         let currentTable = null;
@@ -625,87 +625,112 @@
                 item.addEventListener('click', function(e) {
                     e.preventDefault();
                     
-                    // 移除其他选中状态
+                    // 移除其他活动状态
                     document.querySelectorAll('.table-item').forEach(i => i.classList.remove('active'));
-                    // 添加选中状态
+                    
+                    // 添加当前活动状态
                     this.classList.add('active');
                     
-                    const tableName = this.dataset.table;
-                    loadTableInfo(tableName);
+                    // 获取表名
+                    currentTable = this.getAttribute('data-table');
+                    
+                    // 加载表信息
+                    loadTableInfo(currentTable);
                 });
             });
         });
         
+        // 加载表信息
+        function loadTableInfo(tableName) {
+            showLoading();
+            
+            const formData = new FormData();
+            formData.append('tableName', tableName);
+            
+            fetch('/generator/table', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    displayTableInfo(data.table);
+                    displayColumns(data.columns);
+                    
+                    // 隐藏欢迎消息，显示表信息
+                    document.getElementById('welcome-message').style.display = 'none';
+                    document.getElementById('table-info').style.display = 'block';
+                    document.getElementById('code-preview').style.display = 'none';
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showToast('加载表信息失败: ' + error.message, 'error');
+            });
+        }
+        
+        // 显示表信息
+        function displayTableInfo(table) {
+            document.getElementById('table-name').textContent = table.tableName;
+            document.getElementById('table-comment').textContent = table.tableComment || '无注释';
+            
+            // 查找主键
+            let primaryKey = '无';
+            if (table.columns) {
+                const pkColumn = table.columns.find(col => col.isPrimaryKey);
+                if (pkColumn) {
+                    primaryKey = pkColumn.columnName;
+                }
+            }
+            document.getElementById('primary-key').textContent = primaryKey;
+            document.getElementById('column-count').textContent = (table.columns ? table.columns.length : 0) + ' 个';
+        }
+        
+        // 显示字段信息
+        function displayColumns(columns) {
+            const tbody = document.getElementById('columns-table');
+            tbody.innerHTML = '';
+            
+            if (columns && columns.length > 0) {
+                columns.forEach(column => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${column.columnName}</td>
+                        <td>${column.dataType}</td>
+                        <td>${column.javaType}</td>
+                        <td>${column.columnComment || '-'}</td>
+                        <td>
+                            <span class="badge badge-custom ${column.isPrimaryKey ? 'badge-success' : 'badge-secondary'}">
+                                ${column.isPrimaryKey ? '是' : '否'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-custom ${column.isAutoIncrement ? 'badge-success' : 'badge-secondary'}">
+                                ${column.isAutoIncrement ? '是' : '否'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-custom ${column.isNullable ? 'badge-success' : 'badge-secondary'}">
+                                ${column.isNullable ? '是' : '否'}
+                            </span>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+        
         // 显示加载状态
         function showLoading() {
             document.getElementById('loading').style.display = 'flex';
-            document.getElementById('table-info').style.display = 'none';
-            document.getElementById('code-preview').style.display = 'none';
-            document.getElementById('welcome-message').style.display = 'none';
         }
         
         // 隐藏加载状态
         function hideLoading() {
             document.getElementById('loading').style.display = 'none';
-        }
-        
-        // 加载表信息
-        function loadTableInfo(tableName) {
-            currentTable = tableName;
-            showLoading();
-            
-            fetch(`/generator/table/${tableName}`)
-                .then(response => response.json())
-                .then(data => {
-                    hideLoading();
-                    if (data.success) {
-                        displayTableInfo(data.data);
-                    } else {
-                        showToast(data.message, 'error');
-                        showWelcome();
-                    }
-                })
-                .catch(error => {
-                    hideLoading();
-                    showToast('加载表信息失败: ' + error.message, 'error');
-                    showWelcome();
-                });
-        }
-        
-        // 显示欢迎页面
-        function showWelcome() {
-            document.getElementById('welcome-message').style.display = 'block';
-            document.getElementById('table-info').style.display = 'none';
-            document.getElementById('code-preview').style.display = 'none';
-        }
-        
-        // 显示表信息
-        function displayTableInfo(tableInfo) {
-            document.getElementById('welcome-message').style.display = 'none';
-            document.getElementById('code-preview').style.display = 'none';
-            document.getElementById('table-info').style.display = 'block';
-            
-            document.getElementById('table-name').textContent = tableInfo.tableName;
-            document.getElementById('table-comment').textContent = tableInfo.tableComment || '无';
-            document.getElementById('primary-key').textContent = tableInfo.primaryKey || '无';
-            document.getElementById('column-count').textContent = tableInfo.columns.length;
-            
-            // 显示字段信息
-            const tbody = document.getElementById('columns-table');
-            tbody.innerHTML = '';
-            
-            tableInfo.columns.forEach(column => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td><strong>${column.columnName}</strong></td>
-                    <td><code>${column.columnType}</code></td>
-                    <td><span class="badge bg-primary">${column.javaType}</span></td>
-                    <td>${column.columnComment || '无'}</td>
-                    <td><span class="badge ${column.primaryKey ? 'badge-success' : 'badge-secondary'} badge-custom">${column.primaryKey ? '是' : '否'}</span></td>
-                    <td><span class="badge ${column.autoIncrement ? 'badge-success' : 'badge-secondary'} badge-custom">${column.autoIncrement ? '是' : '否'}</span></td>
-                    <td><span class="badge ${column.nullable ? 'bg-warning' : 'badge-success'} badge-custom">${column.nullable ? '是' : '否'}</span></td>
-                `;
-            });
         }
         
         // 生成代码
@@ -724,18 +749,26 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
+            .then(response => response.blob())
+            .then(blob => {
                 hideLoading();
-                if (data.success) {
-                    showToast(data.message, 'success');
-                } else {
-                    showToast(data.message, 'error');
-                }
+                
+                // 创建下载链接
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = currentTable + '_code.zip';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showToast('代码生成成功！', 'success');
             })
             .catch(error => {
                 hideLoading();
-                showToast('生成代码失败: ' + error.message, 'error');
+                showToast('代码生成失败: ' + error.message, 'error');
             });
         }
         
