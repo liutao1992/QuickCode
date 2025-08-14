@@ -107,7 +107,7 @@ public class GeneratorController {
             TableInfo tableInfo = databaseAnalyzer.getTableInfo(tableName);
             String code = "";
             
-            switch (type.toLowerCase()) {
+            switch (type) {
                 case "entity":
                     code = codeGeneratorService.generateEntity(tableInfo);
                     break;
@@ -120,6 +120,9 @@ public class GeneratorController {
                 case "controller":
                     code = codeGeneratorService.generateController(tableInfo);
                     break;
+                case "sql":
+                    code = codeGeneratorService.generateSqlFile(tableInfo);
+                    break;
                 default:
                     throw new IllegalArgumentException("不支持的代码类型: " + type);
             }
@@ -128,7 +131,7 @@ public class GeneratorController {
             result.put("code", code);
         } catch (Exception e) {
             result.put("success", false);
-            result.put("message", "代码预览失败: " + e.getMessage());
+            result.put("message", "预览失败: " + e.getMessage());
         }
         return result;
     }

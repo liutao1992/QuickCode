@@ -1,8 +1,16 @@
 /*[findAll]*/
-SELECT * FROM ${table.tableName};
+SELECT 
+<#list table.columns as column>
+    ${column.columnName}<#if column_has_next>,</#if>
+</#list>
+FROM ${table.tableName};
 
 /*[findById]*/
-SELECT * FROM ${table.tableName} WHERE ${table.primaryKey} = :${table.primaryKeyProperty};
+SELECT 
+<#list table.columns as column>
+    ${column.columnName}<#if column_has_next>,</#if>
+</#list>
+FROM ${table.tableName} WHERE ${table.primaryKey} = :${table.primaryKeyProperty};
 
 /*[insert]*/
 INSERT INTO ${table.tableName} (
@@ -32,7 +40,11 @@ WHERE ${table.primaryKey} = :${table.primaryKeyProperty};
 DELETE FROM ${table.tableName} WHERE ${table.primaryKey} = :${table.primaryKeyProperty};
 
 /*[findByPage]*/
-SELECT * FROM ${table.tableName} LIMIT :limit OFFSET :offset;
+SELECT 
+<#list table.columns as column>
+    ${column.columnName}<#if column_has_next>,</#if>
+</#list>
+FROM ${table.tableName} LIMIT :limit OFFSET :offset;
 
 /*[count]*/
 SELECT COUNT(*) FROM ${table.tableName};

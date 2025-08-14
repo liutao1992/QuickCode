@@ -551,6 +551,10 @@
                                 <i class="bi bi-controller"></i>
                                 预览 Controller
                             </button>
+                            <button type="button" class="btn btn-custom btn-outline-custom" onclick="previewCode('sql')">
+                                <i class="bi bi-database"></i>
+                                预览 SQL
+                            </button>
                         </div>
                     </div>
                     
@@ -646,8 +650,9 @@
     <script src="/js/prism-core.min.js"></script>
     <script src="/js/components/prism-clike.min.js"></script>
     <script src="/js/components/prism-java.min.js"></script>
+    <script src="/js/components/prism-sql.min.js"></script>
     <!-- 移除自动加载器，直接加载所需语言 -->
-    <!-- <script src="/js/prism-autoloader.min.js"></script> -->
+    <script src="/js/prism-autoloader.min.js"></script>
     
     <script>
         let currentTable = null;
@@ -827,10 +832,52 @@
             .then(data => {
                 hideLoading();
                 if (data.success) {
+                    const codeElement = document.getElementById('preview-code');
+                    const codeHeader = document.querySelector('.code-header h6');
+                    
+                    // 根据类型设置语言和标题
+                    let language = 'java';
+                    let title = '代码预览';
+                    
+                    switch(type) {
+                        case 'sql':
+                            language = 'sql';
+                            title = 'SQL文件预览 - ' + currentTable;
+                            break;
+                        case 'entity':
+                            language = 'java';
+                            title = 'Entity类预览 - ' + currentTable;
+                            break;
+                        case 'dao':
+                            language = 'java';
+                            title = 'DAO接口预览 - ' + currentTable;
+                            break;
+                        case 'service':
+                            language = 'java';
+                            title = 'Service类预览 - ' + currentTable;
+                            break;
+                        case 'controller':
+                            language = 'java';
+                            title = 'Controller类预览 - ' + currentTable;
+                            break;
+                        default:
+                            language = 'java';
+                            title = '代码预览 - ' + currentTable;
+                    }
+                    
+                    // 设置语言类和内容
+                    codeElement.className = `language-${language}`;
+                    codeElement.textContent = data.code;
+                    
+                    // 更新标题
+                    codeHeader.innerHTML = `<i class="bi bi-code-square"></i> ${title}`;
+                    
+                    // 显示预览区域
                     document.getElementById('table-info').style.display = 'none';
                     document.getElementById('code-preview').style.display = 'block';
-                    document.getElementById('preview-code').textContent = data.code;
-                    Prism.highlightAll();
+                    
+                    // 重新应用语法高亮
+                    Prism.highlightElement(codeElement);
                 } else {
                     showToast(data.message, 'error');
                 }
