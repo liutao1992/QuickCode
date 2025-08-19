@@ -71,17 +71,19 @@ public class ${table.className}Dao {
     /**
      * 分页查询
      */
-    public PagedResource<DataRow> findByPage(int page, int size) {
+    public List<${table.className}> findByPage(int offset, int size) {
         return bakiDao.query("&${table.instanceName}.findByPage")
-                .pageable(page, size).collect();
+                .arg("offset", offset)
+                .arg("limit", size)
+                .entities(${table.className}.class);
     }
     
     /**
      * 统计总记录数
      */
-    public Long count() {
+    public long count() {
         return bakiDao.query("&${table.instanceName}.count")
-                .queryForObject(Long.class);
+                .findFirstEntity(Long.class);
     }
     
     /**

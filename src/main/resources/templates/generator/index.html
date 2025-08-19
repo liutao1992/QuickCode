@@ -491,15 +491,23 @@
                         </div>
                     </div>
                 </div>
-                <div class="table-list">
-                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
-                    <div th:if="${tables}">
-                        <a href="#" class="table-item" 
-                           th:each="table : ${tables}" 
-                           th:data-table="${table.tableName}">
-                            <div class="table-name" th:text="${table.tableName}"></div>
-                            <div class="table-comment" th:text="${table.tableComment} ?: '无注释'"></div>
-                        </a>
+                <div class="table-list" id="table-list">
+                    <div id="loading-indicator" class="text-center p-3" style="display: none;">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <span class="ms-2">加载中...</span>
+                    </div>
+                    <div id="error-message" class="alert alert-danger" style="display: none;"></div>
+                    <div id="table-count" class="text-muted small p-2" style="display: none;">
+                        共 <span id="total-count">0</span> 个表
+                    </div>
+                    <!-- 表格项将通过JavaScript动态加载 -->
+                    <div id="load-more-container" class="text-center p-3" style="display: none;">
+                        <button id="load-more-btn" class="btn btn-outline-primary btn-sm" onclick="loadMoreTables()">
+                            <i class="bi bi-arrow-down-circle"></i>
+                            加载更多
+                        </button>
                     </div>
                 </div>
             </div>
@@ -657,17 +665,103 @@
     <script>
         let currentTable = null;
         
-        // 初始化
+        // 全局变量
+        let currentPage = 1;
+        let isLoading = false;
+        let hasMoreData = true;
+        let currentSearchTerm = '';
+        let searchTimeout = null;
+        
+        // 页面加载完成后的初始化
         document.addEventListener('DOMContentLoaded', function() {
-            // 表格点击事件
-            document.querySelectorAll('.table-item').forEach(item => {
-                item.addEventListener('click', function(e) {
+            // 初始加载表格列表
+            loadTables(true);
+        });
+        
+        // 加载表格列表
+        function loadTables(reset = false) {
+            if (isLoading) return;
+            
+            if (reset) {
+                currentPage = 1;
+                hasMoreData = true;
+                document.getElementById('table-list').innerHTML = `
+                    <div id="loading-indicator" class="text-center p-3" style="display: none;">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <span class="ms-2">加载中...</span>
+                    </div>
+                    <div id="error-message" class="alert alert-danger" style="display: none;"></div>
+                    <div id="table-count" class="text-muted small p-2" style="display: none;">
+                        共 <span id="total-count">0</span> 个表
+                    </div>
+                    <div id="load-more-container" class="text-center p-3" style="display: none;">
+                        <button id="load-more-btn" class="btn btn-outline-primary btn-sm" onclick="loadMoreTables()">
+                            <i class="bi bi-arrow-down-circle"></i>
+                            加载更多
+                        </button>
+                    </div>
+                `;
+            }
+            
+            isLoading = true;
+            showLoadingIndicator();
+            
+            const params = new URLSearchParams({
+                page: currentPage,
+                size: 20
+            });
+            
+            if (currentSearchTerm) {
+                params.append('search', currentSearchTerm);
+            }
+            
+            fetch(`/generator/tables?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    hideLoadingIndicator();
+                    isLoading = false;
+                    
+                    if (data.success) {
+                        renderTables(data.tables, reset);
+                        updateTableCount(data.total);
+                        hasMoreData = data.hasMore;
+                        updateLoadMoreButton();
+                    } else {
+                        showError(data.message || '加载表格列表失败');
+                    }
+                })
+                .catch(error => {
+                    hideLoadingIndicator();
+                    isLoading = false;
+                    showError('网络错误: ' + error.message);
+                });
+        }
+        
+        // 渲染表格列表
+        function renderTables(tables, reset = false) {
+            const tableList = document.getElementById('table-list');
+            
+            tables.forEach(table => {
+                const tableItem = document.createElement('a');
+                tableItem.href = '#';
+                tableItem.className = 'table-item';
+                tableItem.setAttribute('data-table', table.tableName);
+                
+                tableItem.innerHTML = `
+                    <div class="table-name">${table.tableName}</div>
+                    <div class="table-comment">${table.tableComment || '无注释'}</div>
+                `;
+                
+                // 添加点击事件
+                tableItem.addEventListener('click', function(e) {
                     e.preventDefault();
                     
-                    // 移除其他活动状态
+                    // 移除其他项的active状态
                     document.querySelectorAll('.table-item').forEach(i => i.classList.remove('active'));
                     
-                    // 添加当前活动状态
+                    // 添加当前项的active状态
                     this.classList.add('active');
                     
                     // 获取表名
@@ -676,8 +770,56 @@
                     // 加载表信息
                     loadTableInfo(currentTable);
                 });
+                
+                // 插入到加载更多按钮之前
+                const loadMoreContainer = document.getElementById('load-more-container');
+                tableList.insertBefore(tableItem, loadMoreContainer);
             });
-        });
+        }
+        
+        // 加载更多表格
+        function loadMoreTables() {
+            if (!hasMoreData || isLoading) return;
+            currentPage++;
+            loadTables(false);
+        }
+        
+        // 显示加载指示器
+        function showLoadingIndicator() {
+            document.getElementById('loading-indicator').style.display = 'block';
+        }
+        
+        // 隐藏加载指示器
+        function hideLoadingIndicator() {
+            document.getElementById('loading-indicator').style.display = 'none';
+        }
+        
+        // 显示错误信息
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        // 更新表格数量显示
+        function updateTableCount(total) {
+            document.getElementById('total-count').textContent = total;
+            document.getElementById('table-count').style.display = total > 0 ? 'block' : 'none';
+        }
+        
+        // 更新加载更多按钮
+        function updateLoadMoreButton() {
+            const loadMoreContainer = document.getElementById('load-more-container');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            
+            if (hasMoreData) {
+                loadMoreContainer.style.display = 'block';
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.innerHTML = '<i class="bi bi-arrow-down-circle"></i> 加载更多';
+            } else {
+                loadMoreContainer.style.display = 'none';
+            }
+        }
         
         // 加载表信息
         function loadTableInfo(tableName) {
@@ -976,11 +1118,7 @@
         function filterTables() {
             const searchInput = document.getElementById('table-search');
             const clearBtn = document.getElementById('clear-search');
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            const tableItems = document.querySelectorAll('.table-item');
-            const tableList = document.querySelector('.table-list');
-            
-            let visibleCount = 0;
+            const searchTerm = searchInput.value.trim();
             
             // 显示/隐藏清除按钮
             if (searchTerm) {
@@ -989,32 +1127,15 @@
                 clearBtn.style.display = 'none';
             }
             
-            // 过滤表格项
-            tableItems.forEach(item => {
-                const tableName = item.querySelector('.table-name').textContent.toLowerCase();
-                const tableComment = item.querySelector('.table-comment').textContent.toLowerCase();
-                
-                if (tableName.includes(searchTerm) || tableComment.includes(searchTerm)) {
-                    item.classList.remove('hidden');
-                    visibleCount++;
-                } else {
-                    item.classList.add('hidden');
-                }
-            });
-            
-            // 显示无结果提示
-            let noResultsMsg = document.querySelector('.no-results');
-            if (visibleCount === 0 && searchTerm) {
-                if (!noResultsMsg) {
-                    noResultsMsg = document.createElement('div');
-                    noResultsMsg.className = 'no-results';
-                    noResultsMsg.innerHTML = '<i class="bi bi-search"></i><br>未找到匹配的表';
-                    tableList.appendChild(noResultsMsg);
-                }
-                noResultsMsg.style.display = 'block';
-            } else if (noResultsMsg) {
-                noResultsMsg.style.display = 'none';
+            // 防抖处理
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
             }
+            
+            searchTimeout = setTimeout(() => {
+                currentSearchTerm = searchTerm;
+                loadTables(true);
+            }, 300);
         }
         
         // 清除搜索
@@ -1025,16 +1146,9 @@
             searchInput.value = '';
             clearBtn.style.display = 'none';
             
-            // 显示所有表格项
-            document.querySelectorAll('.table-item').forEach(item => {
-                item.classList.remove('hidden');
-            });
-            
-            // 隐藏无结果提示
-            const noResultsMsg = document.querySelector('.no-results');
-            if (noResultsMsg) {
-                noResultsMsg.style.display = 'none';
-            }
+            // 清除搜索条件并重新加载
+            currentSearchTerm = '';
+            loadTables(true);
             
             // 聚焦搜索框
             searchInput.focus();

@@ -30,13 +30,57 @@ public class GeneratorController {
      */
     @GetMapping
     public String index(Model model) {
-        try {
-            List<TableInfo> tables = databaseAnalyzer.getAllTables();
-            model.addAttribute("tables", tables);
-        } catch (Exception e) {
-            model.addAttribute("error", "获取数据库表信息失败: " + e.getMessage());
-        }
+        // 不再一次性加载所有表，改为前端异步加载
         return "generator/index";
+    }
+    
+    /**
+     * 分页获取表列表
+     */
+    @GetMapping("/tables")
+    @ResponseBody
+    public Map<String, Object> getTables(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            List<TableInfo> allTables = databaseAnalyzer.getAllTables();
+            
+            // 搜索过滤
+            List<TableInfo> filteredTables = allTables;
+            if (search != null && !search.trim().isEmpty()) {
+                String searchLower = search.toLowerCase().trim();
+                filteredTables = allTables.stream()
+                    .filter(table -> 
+                        table.getTableName().toLowerCase().contains(searchLower) ||
+                        (table.getTableComment() != null && table.getTableComment().toLowerCase().contains(searchLower))
+                    )
+                    .collect(java.util.stream.Collectors.toList());
+            }
+            
+            // 分页处理
+            int total = filteredTables.size();
+            int startIndex = (page - 1) * size;
+            int endIndex = Math.min(startIndex + size, total);
+            
+            List<TableInfo> pagedTables = filteredTables.subList(
+                Math.max(0, startIndex), 
+                Math.max(0, endIndex)
+            );
+            
+            result.put("success", true);
+            result.put("tables", pagedTables);
+            result.put("total", total);
+            result.put("page", page);
+            result.put("size", size);
+            result.put("totalPages", (total + size - 1) / size);
+            result.put("hasMore", endIndex < total);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "获取数据库表信息失败: " + e.getMessage());
+        }
+        return result;
     }
     
     /**
